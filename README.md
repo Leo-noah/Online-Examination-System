@@ -19,37 +19,226 @@ These are implemented features, not a guarantee that every workflow is correct. 
 
 ## How the System Works
 
-The online examination system follows this process:
+The system connects three workflows: administrators organise users and academic information, teachers prepare and grade exams, and students take exams and view their results.
+
+### 1. Registration, Login, and Dashboard Access
 
 ```text
 User Opens the Website
         ↓
-Register / Login
-        ↓
-Role-Based Dashboard
-        ↓
-  Admin              Teacher               Student
-    ↓                   ↓                     ↓
-Manage Users        Create Exams        View Available Exams
-Departments         Add Questions              ↓
-and Courses         Set Schedule          Take an Exam
-                        ↓                     ↓
-                   Publish Exam          Submit Answers
-                                              ↓
-                                    Automatic Marking
-                                  (MCQ and True/False)
-                                              ↓
-                                     Teacher Reviews
-                                   Answers and Assigns
-                                      Marks / Feedback
-                                              ↓
-                                    Save Final Results
-                                              ↓
-                                   Student Views Scores
-                                   and Permitted Details
+Already Has an Account?
+        ├── No → Open Registration Form
+        │               ↓
+        │        Enter Account Details
+        │               ↓
+        │        Validate Registration Data
+        │               ↓
+        │        Check for Duplicate Username / Email
+        │               ↓
+        │        Hash Password and Save Account
+        │               ↓
+        │        Continue to Login
+        │
+        └── Yes → Open Login Form
+                        ↓
+               Enter Username / Email and Password
+                        ↓
+               Look Up Account and Verify Password
+                        ├── Invalid → Show Login Error
+                        │             and Update Attempt Count
+                        │
+                        └── Valid → Apply Current Access Rules
+                                        ↓
+                              Access Available?
+                                ├── No → Show Access / Waiting Message
+                                │
+                                └── Yes → Create Login Session
+                                                ↓
+                                      Read User Role
+                                                ↓
+                              ┌─────────────────┼─────────────────┐
+                              ↓                 ↓                 ↓
+                       Admin Dashboard   Teacher Dashboard  Student Dashboard
 ```
 
-Teachers publish exams for students to take. Submitted objective answers receive initial automatic marks, while teachers review submissions and save final marks and feedback. Students can view their scores, with answer details available when the teacher enables them.
+For non-admin users, the login handler checks the configured login start time and manual approval status. A scheduled start that has not yet arrived prevents access unless the user has been manually approved. The current handler also checks certain password-request states before completing login.
+
+### 2. Admin Workflow: Prepare Users and Academic Information
+
+```text
+Admin Dashboard
+        ↓
+Choose a Management Area
+        ├── User Management
+        │       ↓
+        │   Search / View Registered Users
+        │       ↓
+        │   Review User Details
+        │       ↓
+        │   Assign Roles and Department Information
+        │       ↓
+        │   Save Updated User Records
+        │
+        ├── Department Management
+        │       ↓
+        │   View / Add / Remove Departments
+        │       ↓
+        │   Save Academic Information
+        │
+        ├── Course Management
+        │       ↓
+        │   Add / Edit / Remove Courses
+        │       ↓
+        │   Set Course Code, Department, Semester, and Major
+        │       ↓
+        │   Save Course Records
+        │
+        └── Access and Password Requests
+                ↓
+            Configure Login Availability / Review Requests
+                ↓
+            Record Approval or Other Available Request Action
+                ↓
+            Save Access Settings and Permission Records
+```
+
+The stored user and course information supports the teacher and student workflows. The current application uses several separate pages to manage these records.
+
+### 3. Teacher Workflow: Create and Publish an Exam
+
+```text
+Teacher Dashboard
+        ↓
+Open Exam Management
+        ↓
+View Assigned Course Information
+        ↓
+Create a New Exam / Edit an Existing Exam
+        ↓
+Enter Exam Title and Select Course
+        ↓
+Set Target Year Levels
+        ↓
+Set Exam Date, Due Date, and Time Limit
+        ↓
+Save Exam Details
+        ↓
+Define Question Ranges
+(Question Numbers, Question Type, Marks per Question)
+        ↓
+Add / Import Questions
+        ├── Multiple Choice → Enter Options and Correct Answer
+        ├── True / False → Enter Correct Answer
+        ├── Short Answer → Enter Question and Reference Answer
+        └── Long Answer → Enter Question and Reference Answer
+        ↓
+Attach Question Images Where Needed
+        ↓
+View Questions and Make Changes
+        ↓
+Publish the Exam
+        ↓
+Exam Can Appear in Matching Students' Available Exam Lists
+```
+
+The optional AI helper can format teacher-provided text before it is used in a question. It requires a configured API key and is separate from exam grading.
+
+### 4. Student Workflow: Find and Take an Exam
+
+```text
+Student Dashboard
+        ↓
+Review / Update Profile Information
+        ↓
+Open Available Exams
+        ↓
+Load Published Exams Matching Current Year / Course Rules
+        ↓
+Apply Existing Submission / Retake List Rules
+        ↓
+Select an Available Exam
+        ↓
+Open the Exam Paper
+        ↓
+View Questions and Any Attached Images
+        ↓
+Browser Displays the Exam Countdown
+        ↓
+Answer MCQ, True / False, Short, and Long Questions
+        ↓
+Move Between Questions and Review Answers
+        ↓
+Submit the Exam
+        ↓
+Send Exam ID, Question IDs, Answers, and Submission Flags
+        ↓
+Backend Matches Answers to Stored Questions
+        ↓
+Compare MCQ / True-False Answers with Stored Correct Answers
+        ↓
+Calculate Initial Objective Marks and Total
+        ↓
+Save Answers, Marks, Submission Time, and Status
+        ↓
+Return to Student Dashboard with Submission Confirmation
+```
+
+At submission, the current code awards one point for each correct objective answer. Other question types initially receive zero pending teacher review. The submission status is stored as `pending`, `reexam`, or `disqualified` according to the submitted flags. These are current implementation details; the limitations section explains the remaining validation and marking issues.
+
+### 5. Teacher Workflow: Review, Grade, and Provide Feedback
+
+```text
+Teacher Dashboard
+        ↓
+Open Exam Results
+        ↓
+Choose an Exam
+        ↓
+View Student Submissions
+        ↓
+Select a Student's Submission
+        ↓
+Load Submitted Answers, Questions, and Existing Marks
+        ↓
+Review Objective Answers and Written Responses
+        ↓
+Enter / Adjust Marks per Question
+        ↓
+Add Answer Annotations and Recommendations
+        ↓
+Save Grading
+        ↓
+Calculate Total from Submitted Marks
+        ↓
+Update Marks, Annotations, Feedback, and Total Score
+        ↓
+Set Submission Status to Graded
+        ↓
+Set Whether Students Can View Answer Details
+```
+
+### 6. Student Workflow: View Scores and Permitted Details
+
+```text
+Student Dashboard
+        ↓
+Open My Results
+        ↓
+Load the Student's Stored Submissions and Exam Information
+        ↓
+View Available Scores and Submission Status
+        ↓
+Has the Teacher Enabled Answer Details?
+        ├── No → Keep Detailed Answer View Unavailable
+        │
+        └── Yes → Open Detailed Result
+                        ↓
+                  Review Saved Answers and Marks
+                        ↓
+                  Read Teacher Annotations / Recommendations
+```
+
+Scores may initially reflect automatic objective marking. Teacher grading updates the stored marks and feedback afterward. The diagrams describe the current workflow; they do not imply complete server-side enforcement of timing, eligibility, retakes, or permissions.
 
 ## Technologies
 
