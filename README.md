@@ -17,6 +17,40 @@ My first solo project: an online examination system built with PHP and MySQL. I 
 
 These are implemented features, not a guarantee that every workflow is correct. See the limitations below.
 
+## How the System Works
+
+The online examination system follows this process:
+
+```text
+User Opens the Website
+        ↓
+Register / Login
+        ↓
+Role-Based Dashboard
+        ↓
+  Admin              Teacher               Student
+    ↓                   ↓                     ↓
+Manage Users        Create Exams        View Available Exams
+Departments         Add Questions              ↓
+and Courses         Set Schedule          Take an Exam
+                        ↓                     ↓
+                   Publish Exam          Submit Answers
+                                              ↓
+                                    Automatic Marking
+                                  (MCQ and True/False)
+                                              ↓
+                                     Teacher Reviews
+                                   Answers and Assigns
+                                      Marks / Feedback
+                                              ↓
+                                    Save Final Results
+                                              ↓
+                                   Student Views Scores
+                                   and Permitted Details
+```
+
+Teachers publish exams for students to take. Submitted objective answers receive initial automatic marks, while teachers review submissions and save final marks and feedback. Students can view their scores, with answer details available when the teacher enables them.
+
 ## Technologies
 
 PHP, MySQL, PDO, MySQLi, HTML, CSS, JavaScript, Bootstrap, Tailwind CSS on selected pages, and Font Awesome. Several pages load libraries from CDNs and need an internet connection for those assets.
